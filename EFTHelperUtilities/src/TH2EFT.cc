@@ -87,10 +87,14 @@ Bool_t TH2EFT::NormalizeTo(const TH2D *h1, Double_t c1)
     }
 
     //Loop over all bins, and divide by h1->GetBinContent ^ c1 (sqrt by default)
-    for(int i = 0; i < this->GetNbinsX()+2; i++) {
-        for(int j = 0; j < this->GetNbinsY()+2; j++) {
-            //int bin = this->FindBin(i,j); //Find the corresonding bin
-            int bin = i + (this->GetNbinsY()+2) * j;
+    double xlow = this->GetXaxis()->GetBinLowEdge(0);
+    double ylow = this->GetYaxis()->GetBinLowEdge(0);
+    double xhigh = this->GetXaxis()->GetBinUpEdge(this->GetXaxis()->GetNbins()+1);
+    double yhigh = this->GetYaxis()->GetBinUpEdge(this->GetYaxis()->GetNbins()+1);
+    for(double i = xlow; i < xhigh; i += this->GetXaxis()->GetBinWidth(i)) {
+      for(double j = ylow; j < yhigh; j += this->GetYaxis()->GetBinWidth(j)) {
+            int bin = this->FindBin(i,j); //Find the corresonding bin
+            //int bin = i + (this->GetNbinsY()+2) * j;
             //Get bin contents and errors from this and h1
             double thisbin = this->GetBinContent(bin);
             double thisbinerror = this->GetBinError(bin);
@@ -105,7 +109,7 @@ Bool_t TH2EFT::NormalizeTo(const TH2D *h1, Double_t c1)
             double diffsq = diff * diff;
             //int bval = 36;
             int bval = 13;
-            std::cout << "FoM=" << fom << " for " << thisbin << " " << h1bin << std::endl;
+            std::cout << "FoM=" << fom << " for (" << i << "," << j << ": " << bin << ") " << thisbin << " " << h1bin << std::endl;
             if(bin == bval) std::cout << "FoM=" << fom << " for " << thisbin << " " << h1bin << std::endl;
             if(bin == bval) std::cout << fom << "\t" << h1binerror << "\t" << diff << "\t" << diffsq << std::endl;
             //h1binerror = fom * sqrt( abs(efterrsq - smerrsq) / diffsq + 1/4 * smerrsq/(h1bin*h1bin));
@@ -295,12 +299,12 @@ void TH2EFT::AddBinFit(Int_t bin, WCFit &fit)
 TH2EFT* TH2EFT::Rebin(Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 {
     TH2EFT *h = new TH2EFT(this->GetName(), this->GetTitle(), nbinsx, x, nbinsy, y);
-    for(int i = 0; i < this->GetNbinsX(); i++) {
-        for(int j = 0; j < this->GetNbinsY(); j++) {
-            int thisbin = this->FindBin(i, j);
+    for(int i = 1; i <= this->GetNbinsX(); i++) {
+        for(int j = 1; j <= this->GetNbinsY(); j++) {
+            int thisbin = j*(this->GetNbinsY()+2) + i;
             double xbin = this->GetXaxis()->GetBinLowEdge(i);
-            double ybin = this->GetYaxis()->GetBinLowEdge(i);
-            int newbin = h->FindBin(xbin, ybin);
+            double ybin = this->GetYaxis()->GetBinLowEdge(j);
+            int newbin = h->FindBin(xbin, ybin);//h->FindBin(i, j);
             double thisval = this->GetBinContent(thisbin);
             double thiserr = this->GetBinError(thisbin);
             double newval = h->GetBinContent(newbin);
@@ -338,10 +342,12 @@ TH2EFT* TH2EFT::Rebin(Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 TH2D* TH2EFT::RebinSM(TH2D* hsm, Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 {
     TH2D *h = new TH2D(hsm->GetName(), hsm->GetTitle(), nbinsx, x, nbinsy, y);
-    for(int i = 0; i < hsm->GetNbinsX(); i++) {
-        for(int j = 0; j < hsm->GetNbinsY(); j++) {
-            int thisbin = hsm->FindBin(i, j);
-            int newbin = h->FindBin(i, j);
+    for(int i = 1; i <= hsm->GetNbinsX(); i++) {
+        for(int j = 1; j <= hsm->GetNbinsY(); j++) {
+            int thisbin = j*(hsm->GetNbinsY()+2) + i;
+            double xbin = hsm->GetXaxis()->GetBinLowEdge(i);
+            double ybin = hsm->GetYaxis()->GetBinLowEdge(j);
+            int newbin = h->FindBin(xbin, ybin);//h->FindBin(i, j);
             double thisval = hsm->GetBinContent(thisbin);
             double thiserr = hsm->GetBinError(thisbin);
             double newval = h->GetBinContent(newbin);
