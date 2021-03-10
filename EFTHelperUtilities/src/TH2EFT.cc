@@ -298,13 +298,26 @@ void TH2EFT::AddBinFit(Int_t bin, WCFit &fit)
 //Create a new bin with rebinned range
 TH2EFT* TH2EFT::Rebin(Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 {
-    TH2EFT *h = new TH2EFT(this->GetName(), this->GetTitle(), nbinsx, x, nbinsy, y);
+    //padding to avoid overflow
+    double *xnew = new double[nbinsx+1];
+    double *ynew = new double[nbinsy+1];
+    for(int i = 0; i < nbinsx; i++)
+        xnew[i] = x[i];
+    for(int i = 0; i < nbinsy; i++)
+        ynew[i] = y[i];
+    xnew[nbinsx] = x[nbinsx-1]+1;
+    ynew[nbinsy] = y[nbinsy-1]+1;
+    TH2EFT *h = new TH2EFT(this->GetName(), this->GetTitle(), nbinsx, xnew, nbinsy, ynew);
     for(int i = 1; i <= this->GetNbinsX(); i++) {
         for(int j = 1; j <= this->GetNbinsY(); j++) {
             int thisbin = j*(this->GetNbinsY()+2) + i;
             double xbin = this->GetXaxis()->GetBinLowEdge(i);
             double ybin = this->GetYaxis()->GetBinLowEdge(j);
+            xbin = xbin > x[nbinsx-1] ? x[nbinsx-1] : xbin; //adjust for overflow, yes that is x not xnew
+            ybin = ybin > y[nbinsy-1] ? y[nbinsy-1] : ybin; //adjust for overflow, yes that is y not ynew
             int newbin = h->FindBin(xbin, ybin);//h->FindBin(i, j);
+            newbin = xbin < x[0] ? 0 : newbin; //adjust for underflow, yes that is x not xnew
+            newbin = ybin < y[0] ? 0 : newbin; //adjust for underflow, yes that is y not ynew
             double thisval = this->GetBinContent(thisbin);
             double thiserr = this->GetBinError(thisbin);
             double newval = h->GetBinContent(newbin);
@@ -341,13 +354,25 @@ TH2EFT* TH2EFT::Rebin(Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 
 TH2D* TH2EFT::RebinSM(TH2D* hsm, Int_t nbinsx, Double_t *x, Int_t nbinsy, Double_t* y)
 {
-    TH2D *h = new TH2D(hsm->GetName(), hsm->GetTitle(), nbinsx, x, nbinsy, y);
+    double *xnew = new double[nbinsx+1];
+    double *ynew = new double[nbinsy+1];
+    for(int i = 0; i < nbinsx; i++)
+        xnew[i] = x[i];
+    for(int i = 0; i < nbinsy; i++)
+        ynew[i] = y[i];
+    xnew[nbinsx] = x[nbinsx-1]+1;
+    ynew[nbinsy] = y[nbinsy-1]+1;
+    TH2D *h = new TH2D(hsm->GetName(), hsm->GetTitle(), nbinsx, xnew, nbinsy, ynew);
     for(int i = 1; i <= hsm->GetNbinsX(); i++) {
         for(int j = 1; j <= hsm->GetNbinsY(); j++) {
             int thisbin = j*(hsm->GetNbinsY()+2) + i;
             double xbin = hsm->GetXaxis()->GetBinLowEdge(i);
             double ybin = hsm->GetYaxis()->GetBinLowEdge(j);
+            xbin = xbin > x[nbinsx-1] ? x[nbinsx-1] : xbin; //adjust for overflow, yes that is x not xnew
+            ybin = ybin > y[nbinsy-1] ? y[nbinsy-1] : ybin; //adjust for overflow, yes that is y not ynew
             int newbin = h->FindBin(xbin, ybin);//h->FindBin(i, j);
+            newbin = xbin < x[0] ? 0 : newbin; //adjust for underflow, yes that is x not xnew
+            newbin = ybin < y[0] ? 0 : newbin; //adjust for underflow, yes that is y not ynew
             double thisval = hsm->GetBinContent(thisbin);
             double thiserr = hsm->GetBinError(thisbin);
             double newval = h->GetBinContent(newbin);
